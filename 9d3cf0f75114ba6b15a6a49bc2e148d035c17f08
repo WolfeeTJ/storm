@@ -1,0 +1,1 @@
+STORM-2625: reduce uncommitted count when kafka consumer group re-assign partitions
