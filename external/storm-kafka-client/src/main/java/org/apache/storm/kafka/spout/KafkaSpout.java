@@ -174,6 +174,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
 
             for (TopicPartition tp : partitions) {
                 final OffsetAndMetadata committedOffset = kafkaConsumer.committed(tp);
+                LOG.info("Initializing KafaSpout, Offset info: {}", committedOffset);
                 final long fetchOffset = doSeek(tp, committedOffset);
                 setAcked(tp, fetchOffset);
             }

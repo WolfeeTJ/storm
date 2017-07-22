@@ -19,6 +19,9 @@
 package org.apache.storm.kafka.spout;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 
@@ -87,7 +90,9 @@ public class KafkaSpoutMessageId implements Serializable {
                 "topic-partition=" + topicPart +
                 ", offset=" + offset +
                 ", numFails=" + numFails +
+                ", hostname=" + System.getenv("HOSTNAME") +
                 ", thread='" + currThread.getName() + "'" +
+                ", timestamp=" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) +
                 '}';
     }
 
