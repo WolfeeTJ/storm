@@ -408,7 +408,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
                 nextCommitOffsets.put(tpOffset.getKey(), nextCommitOffset);
             }
         }
-        LOG.info("Found offsets to commit to Kafka [{}]", nextCommitOffsets);
+        LOG.debug("Found offsets to commit to Kafka [{}]", nextCommitOffsets);
 
         // Commit offsets that are ready to be committed for every topic partition
         if (!nextCommitOffsets.isEmpty()) {

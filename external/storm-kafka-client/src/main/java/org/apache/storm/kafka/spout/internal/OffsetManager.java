@@ -60,7 +60,7 @@ public class OffsetManager {
 
     public void addToAckMsgs(KafkaSpoutMessageId msgId) {          // O(Log N)
         ackedMsgs.add(msgId);
-        LOG.info("addToAckMsgs: {}", msgId);
+        LOG.debug("addToAckMsgs: {}", msgId);
     }
 
     public void addToEmitMsgs(long offset) {
@@ -101,7 +101,7 @@ public class OffsetManager {
         long nextCommitOffset = committedOffset;//21
         KafkaSpoutMessageId nextCommitMsg = null;     // this is a convenience variable to make it faster to create OffsetAndMetadata
 
-        LOG.info("findNextCommitOffset committedOffset: {} ackedMsgs: {}", committedOffset, ackedMsgs);
+        LOG.debug("findNextCommitOffset committedOffset: {} ackedMsgs: {}", committedOffset, ackedMsgs);
         for (KafkaSpoutMessageId currAckedMsg : ackedMsgs) {  // complexity is that of a linear scan on a TreeMap
             currOffset = currAckedMsg.offset();
             if (currOffset == nextCommitOffset + 1) {            // found the next offset to commit
@@ -171,7 +171,7 @@ public class OffsetManager {
             long x = iterator.next().offset();
             if (x <= committedOffset.offset()) {
                 iterator.remove();
-                LOG.info("commit ackedMsgs iterator.remove {}", x);
+                LOG.debug("commit ackedMsgs iterator.remove {}", x);
             } else {
                 break;
             }
@@ -181,7 +181,7 @@ public class OffsetManager {
             long x = iterator.next();
             if (x <= committedOffset.offset()) {
                 iterator.remove();
-                LOG.info("commit emittedOffsets iterator.remove {}", x);
+                LOG.debug("commit emittedOffsets iterator.remove {}", x);
             } else {
                 break;
             }
