@@ -162,7 +162,7 @@ public class OffsetManager {
      * @return Number of offsets committed in this commit
      */
     public long commit(OffsetAndMetadata committedOffset) {
-        LOG.info("committing to offset {}", committedOffset.offset());
+        LOG.debug("committing to offset {}", committedOffset.offset());
         final long preCommitCommittedOffsets = this.committedOffset;
         final long numCommittedOffsets = committedOffset.offset() - this.committedOffset;
         this.committedOffset = committedOffset.offset();
@@ -189,7 +189,7 @@ public class OffsetManager {
 
         LOG.trace("{}", this);
 
-        LOG.info("Committed offsets [{}-{} = {}] for topic-partition [{}].",
+        LOG.debug("Committed offsets [{}-{} = {}] for topic-partition [{}].",
                     preCommitCommittedOffsets + 1, this.committedOffset, numCommittedOffsets, tp);
 
         return numCommittedOffsets;
