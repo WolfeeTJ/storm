@@ -464,7 +464,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
         }
         msgId.incrementNumFails();
         if (!retryService.schedule(msgId)) {
-            LOG.info("Reached maximum number of retries. Message [{}] being marked as acked.", msgId);
+            LOG.error("Reached maximum number of retries. Message [{}] being marked as acked.", msgId);
             // this tuple should be removed from emitted only inside the ack() method. This is to ensure
             // that the OffsetManager for that TopicPartition is updated and allows commit progression
             ack(msgId);
