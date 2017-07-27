@@ -380,7 +380,7 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
                             collector.emit(tuple, msgId);
                         }
                     }
-                    LOG.trace("Emitted tuple [{}] for record [{}] with msgId [{}]", tuple, record, msgId);
+                    LOG.info("Emitted tuple [{}] for record [{}] with msgId [{}]", tuple, record, msgId);
                     return true;
                 }
             } else {
