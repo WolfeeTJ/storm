@@ -101,6 +101,12 @@ public class OffsetManager {
         long nextCommitOffset = committedOffset;//21
         KafkaSpoutMessageId nextCommitMsg = null;     // this is a convenience variable to make it faster to create OffsetAndMetadata
 
+        // if any acked offset before commitedOffset, remove them first;
+        // otherwise too many uncommitted offset could cause findNextCommitOffset unable to find next commit point
+        if(ackedMsgs.first().offset() <= committedOffset) {
+            commit(new OffsetAndMetadata(committedOffset));
+        }
+
         LOG.debug("findNextCommitOffset committedOffset: {} ackedMsgs: {}", committedOffset, ackedMsgs);
         for (KafkaSpoutMessageId currAckedMsg : ackedMsgs) {  // complexity is that of a linear scan on a TreeMap
             currOffset = currAckedMsg.offset();
