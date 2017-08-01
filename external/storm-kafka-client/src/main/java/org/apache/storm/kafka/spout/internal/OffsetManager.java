@@ -103,7 +103,7 @@ public class OffsetManager {
 
         // if any acked offset before commitedOffset, remove them first;
         // otherwise too many uncommitted offset could cause findNextCommitOffset unable to find next commit point
-        if(ackedMsgs.first().offset() <= committedOffset) {
+        if(ackedMsgs.size() > 0 && ackedMsgs.first().offset() <= committedOffset) {
             commit(new OffsetAndMetadata(committedOffset));
         }
 
