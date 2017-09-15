@@ -18,6 +18,7 @@ package org.apache.storm.kafka.spout.internal;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NavigableSet;
+import java.util.NoSuchElementException;
 import java.util.TreeSet;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -48,7 +49,7 @@ public class OffsetManager {
         this.tp = tp;
         this.initialFetchOffset = initialFetchOffset;
         this.committedOffset = initialFetchOffset - 1;
-        LOG.debug("Instantiated {}", this);
+        LOG.debug("Instantiated {}", toString());
     }
 
     public void addToAckMsgs(KafkaSpoutMessageId msgId) {          // O(Log N)
@@ -57,6 +58,27 @@ public class OffsetManager {
 
     public void addToEmitMsgs(long offset) {
         this.emittedOffsets.add(offset);                  // O(Log N)
+    }
+    
+    public int getNumUncommittedOffsets() {
+        return this.emittedOffsets.size();
+    }
+    
+    /**
+     * Gets the offset of the nth emitted message after the committed offset. 
+     * Example: If the committed offset is 0 and offsets 1, 2, 8, 10 have been emitted,
+     * getNthUncommittedOffsetAfterCommittedOffset(3) returns 8.
+     * 
+     * @param index The index of the message to get the offset for
+     * @return The offset
+     * @throws NoSuchElementException if the index is out of range
+     */
+    public long getNthUncommittedOffsetAfterCommittedOffset(int index) {
+        Iterator<Long> offsetIter = emittedOffsets.iterator();
+        for (int i = 0; i < index - 1; i++) {
+            offsetIter.next();
+        }
+        return offsetIter.next();
     }
 
     /**
@@ -92,7 +114,7 @@ public class OffsetManager {
                         first element after committedOffset in the ascending ordered emitted set.
                      */
                     LOG.debug("Processed non contiguous offset. (committedOffset+1) is no longer part of the topic. Committed: [{}], Processed: [{}]", committedOffset, currOffset);
-                    final Long nextEmittedOffset = emittedOffsets.ceiling(nextCommitOffset);
+                    final Long nextEmittedOffset = emittedOffsets.ceiling(nextCommitOffset + 1);
                     if (nextEmittedOffset != null && currOffset == nextEmittedOffset) {
                         found = true;
                         nextCommitMsg = currAckedMsg;
@@ -103,9 +125,9 @@ public class OffsetManager {
                     }
                 }
             } else {
-                //Received a redundant ack. Ignore and continue processing.
-                LOG.warn("topic-partition [{}] has unexpected offset [{}]. Current committed Offset [{}]",
-                    tp, currOffset, committedOffset);
+                throw new IllegalStateException("The offset [" + currOffset + "] is below the current committed "
+                    + "offset [" + committedOffset + "] for [" + tp + "]."
+                    + " This should not be possible, and likely indicates a bug in the spout's acking or emit logic.");
             }
         }
 
@@ -175,7 +197,7 @@ public class OffsetManager {
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         return "OffsetManager{"
             + "topic-partition=" + tp
             + ", fetchOffset=" + initialFetchOffset

@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
@@ -40,6 +41,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.MockitoAnnotations;
+
+import org.mockito.stubbing.OngoingStubbing;
 
 public class KafkaSpoutCommitTest {
 
@@ -67,16 +70,13 @@ public class KafkaSpoutCommitTest {
     public void testCommitSuccessWithOffsetVoids() {
         //Verify that the commit logic can handle offset voids
         try (SimulatedTime simulatedTime = new SimulatedTime()) {
-            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, Collections.singleton(partition));
+            Set<TopicPartition> assignedPartitions = Collections.singleton(partition);
+            KafkaSpout<String, String> spout = SpoutWithMockedConsumerSetupHelper.setupSpout(spoutConfig, conf, contextMock, collectorMock, consumerMock, assignedPartitions);
             Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
             List<ConsumerRecord<String, String>> recordsForPartition = new ArrayList<>();
             // Offsets emitted are 0,1,2,3,4,<void>,8,9
-            for (int i = 0; i < 5; i++) {
-                recordsForPartition.add(new ConsumerRecord<>(partition.topic(), partition.partition(), i, "key", "value"));
-            }
-            for (int i = 8; i < 10; i++) {
-                recordsForPartition.add(new ConsumerRecord<>(partition.topic(), partition.partition(), i, "key", "value"));
-            }
+            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 0, 5));
+            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 8, 2));
             records.put(partition, recordsForPartition);
 
             when(consumerMock.poll(anyLong()))
@@ -93,7 +93,7 @@ public class KafkaSpoutCommitTest {
                 spout.ack(messageId);
             }
 
-            // Advance time and then trigger first call to kafka consumer commit; the commit will progress till offset 4
+            // Advance time and then trigger first call to kafka consumer commit; the commit must progress to offset 9
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
             Map<TopicPartition, List<ConsumerRecord<String, String>>> emptyConsumerRecords = Collections.emptyMap();
             when(consumerMock.poll(anyLong()))
@@ -104,25 +104,8 @@ public class KafkaSpoutCommitTest {
             inOrder.verify(consumerMock).commitSync(commitCapture.capture());
             inOrder.verify(consumerMock).poll(anyLong());
 
-            //verify that Offset 4 was last committed offset
-            //the offset void should be bridged in the next commit
-            Map<TopicPartition, OffsetAndMetadata> commits = commitCapture.getValue();
-            assertTrue(commits.containsKey(partition));
-            assertEquals(4, commits.get(partition).offset());
-
-            //Trigger second kafka consumer commit
-            reset(consumerMock);
-            when(consumerMock.poll(anyLong()))
-                    .thenReturn(new ConsumerRecords<String, String>(emptyConsumerRecords));
-            Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
-            spout.nextTuple();
-
-            inOrder = inOrder(consumerMock);
-            inOrder.verify(consumerMock).commitSync(commitCapture.capture());
-            inOrder.verify(consumerMock).poll(anyLong());
-
             //verify that Offset 9 was last committed offset
-            commits = commitCapture.getValue();
+            Map<TopicPartition, OffsetAndMetadata> commits = commitCapture.getValue();
             assertTrue(commits.containsKey(partition));
             assertEquals(9, commits.get(partition).offset());
         }
