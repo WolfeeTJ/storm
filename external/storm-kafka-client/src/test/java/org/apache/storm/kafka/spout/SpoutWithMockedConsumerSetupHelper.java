@@ -39,30 +39,30 @@ public class SpoutWithMockedConsumerSetupHelper {
     /**
      * Creates, opens and activates a KafkaSpout using a mocked consumer.
      *
-     * @param <K> The Kafka key type
-     * @param <V> The Kafka value type
-     * @param spoutConfig The spout config to use
-     * @param topoConf The topo conf to pass to the spout
-     * @param contextMock The topo context to pass to the spout
-     * @param collectorMock The mocked collector to pass to the spout
-     * @param consumerMock The mocked consumer
+     * @param <K>                The Kafka key type
+     * @param <V>                The Kafka value type
+     * @param spoutConfig        The spout config to use
+     * @param topoConf           The topo conf to pass to the spout
+     * @param contextMock        The topo context to pass to the spout
+     * @param collectorMock      The mocked collector to pass to the spout
+     * @param consumerMock       The mocked consumer
      * @param assignedPartitions The partitions to assign to this spout. The consumer will act like these partitions are assigned to it.
      * @return The spout
      */
     public static <K, V> KafkaSpout<K, V> setupSpout(KafkaSpoutConfig<K, V> spoutConfig, Map<String, Object> topoConf,
-        TopologyContext contextMock, SpoutOutputCollector collectorMock, final KafkaConsumer<K, V> consumerMock, Set<TopicPartition> assignedPartitions) {
+                                                     TopologyContext contextMock, SpoutOutputCollector collectorMock, final KafkaConsumer<K, V> consumerMock, Set<TopicPartition> assignedPartitions) {
 
         Map<String, List<PartitionInfo>> partitionInfos = new HashMap<>();
-        for(TopicPartition tp : assignedPartitions) {
+        for (TopicPartition tp : assignedPartitions) {
             PartitionInfo info = new PartitionInfo(tp.topic(), tp.partition(), null, null, null);
             List<PartitionInfo> infos = partitionInfos.get(tp.topic());
-            if(infos == null) {
+            if (infos == null) {
                 infos = new ArrayList<>();
                 partitionInfos.put(tp.topic(), infos);
             }
             infos.add(info);
         }
-        for(String topic : partitionInfos.keySet()) {
+        for (String topic : partitionInfos.keySet()) {
             when(consumerMock.partitionsFor(topic))
                 .thenReturn(partitionInfos.get(topic));
         }
@@ -79,7 +79,7 @@ public class SpoutWithMockedConsumerSetupHelper {
         when(contextMock.getThisTaskIndex()).thenReturn(0);
 
         when(consumerMock.assignment()).thenReturn(assignedPartitions);
-        
+
         spout.open(topoConf, contextMock, collectorMock);
         spout.activate();
 
@@ -91,11 +91,11 @@ public class SpoutWithMockedConsumerSetupHelper {
     /**
      * Creates sequential dummy records
      *
-     * @param <K> The Kafka key type
-     * @param <V> The Kafka value type
-     * @param topic The topic partition to create records for
+     * @param <K>            The Kafka key type
+     * @param <V>            The Kafka value type
+     * @param topic          The topic partition to create records for
      * @param startingOffset The starting offset of the records
-     * @param numRecords The number of records to create
+     * @param numRecords     The number of records to create
      * @return The dummy records
      */
     public static <K, V> List<ConsumerRecord<K, V>> createRecords(TopicPartition topic, long startingOffset, int numRecords) {
@@ -105,22 +105,4 @@ public class SpoutWithMockedConsumerSetupHelper {
         }
         return recordsForPartition;
     }
-
-    /**
-     * Creates sequential dummy records
-     * @param <K> The Kafka key type
-     * @param <V> The Kafka value type
-     * @param topic The topic partition to create records for
-     * @param startingOffset The starting offset of the records
-     * @param numRecords The number of records to create
-     * @return The dummy records
-     */
-    public static <K, V> List<ConsumerRecord<K, V>> createRecords(TopicPartition topic, long startingOffset, int numRecords) {
-        List<ConsumerRecord<K, V>> recordsForPartition = new ArrayList<>();
-        for (int i = 0; i < numRecords; i++) {
-            recordsForPartition.add(new ConsumerRecord<K, V>(topic.topic(), topic.partition(), startingOffset + i, null, null));
-        }
-        return recordsForPartition;
-    }
-    
 }
