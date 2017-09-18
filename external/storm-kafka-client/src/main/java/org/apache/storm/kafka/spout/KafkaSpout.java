@@ -75,6 +75,8 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
     private transient FirstPollOffsetStrategy firstPollOffsetStrategy;  
     // Class that has the logic to handle tuple failure
     private transient KafkaSpoutRetryService retryService;              
+    // Handles tuple events (emit, ack etc.)
+    private transient KafkaTupleListener tupleListener;
     // timer == null for auto commit mode
     private transient Timer commitTimer;                                
     // Flag indicating that the spout is still undergoing initialization process.
