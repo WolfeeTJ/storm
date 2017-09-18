@@ -224,6 +224,11 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
     public void nextTuple() {
         try {
             if (initialized) {
+             
+                if (refreshSubscriptionTimer.isExpiredResetOnTrue()) {
+                    kafkaSpoutConfig.getSubscription().refreshAssignment();
+                }
+
                 if (commit()) {
                     commitOffsetsForAckedTuples();
                 }
@@ -316,9 +321,6 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
         }
         try {
             kafkaConsumer.pause(pausedPartitions);
-            if (refreshSubscriptionTimer.isExpiredResetOnTrue()) {
-                kafkaSpoutConfig.getSubscription().refreshAssignment();
-            }
             final ConsumerRecords<K, V> consumerRecords = kafkaConsumer.poll(kafkaSpoutConfig.getPollTimeoutMs());
             final int numPolledRecords = consumerRecords.count();
             LOG.debug("Polled [{}] records from Kafka.",

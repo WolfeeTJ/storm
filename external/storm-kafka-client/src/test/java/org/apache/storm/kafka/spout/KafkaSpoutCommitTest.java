@@ -15,7 +15,6 @@
  */
 package org.apache.storm.kafka.spout;
 
-import static org.apache.storm.kafka.spout.builders.SingleTopicKafkaSpoutConfiguration.getKafkaSpoutConfigBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.*;
@@ -30,7 +29,7 @@ import java.util.Set;
 
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.storm.kafka.spout.builders.SingleTopicKafkaSpoutConfiguration;
+import org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.utils.Time;
@@ -42,7 +41,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.MockitoAnnotations;
 
-import org.mockito.stubbing.OngoingStubbing;
+import static org.apache.storm.kafka.spout.config.builder.SingleTopicKafkaSpoutConfiguration.createKafkaSpoutConfigBuilder;
 
 public class KafkaSpoutCommitTest {
 
@@ -60,7 +59,7 @@ public class KafkaSpoutCommitTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        spoutConfig = getKafkaSpoutConfigBuilder(-1)
+        spoutConfig = createKafkaSpoutConfigBuilder(-1)
             .setOffsetCommitPeriodMs(offsetCommitPeriodMs)
             .build();
         consumerMock = mock(KafkaConsumer.class);
@@ -75,8 +74,8 @@ public class KafkaSpoutCommitTest {
             Map<TopicPartition, List<ConsumerRecord<String, String>>> records = new HashMap<>();
             List<ConsumerRecord<String, String>> recordsForPartition = new ArrayList<>();
             // Offsets emitted are 0,1,2,3,4,<void>,8,9
-            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 0, 5));
-            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.<String, String>createRecords(partition, 8, 2));
+            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.createRecords(partition, 0, 5));
+            recordsForPartition.addAll(SpoutWithMockedConsumerSetupHelper.createRecords(partition, 8, 2));
             records.put(partition, recordsForPartition);
 
             when(consumerMock.poll(anyLong()))
@@ -87,25 +86,42 @@ public class KafkaSpoutCommitTest {
             }
 
             ArgumentCaptor<KafkaSpoutMessageId> messageIds = ArgumentCaptor.forClass(KafkaSpoutMessageId.class);
-            verify(collectorMock, times(recordsForPartition.size())).emit(anyString(), anyList(), messageIds.capture());
+            verify(collectorMock, times(recordsForPartition.size())).emit(anyObject(), anyObject(), messageIds.capture());
 
             for (KafkaSpoutMessageId messageId : messageIds.getAllValues()) {
                 spout.ack(messageId);
             }
 
-            // Advance time and then trigger first call to kafka consumer commit; the commit must progress to offset 9
+            // Advance time and then trigger first call to kafka consumer commit; the commit will progress till offset 4
             Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
-            Map<TopicPartition, List<ConsumerRecord<String, String>>> emptyConsumerRecords = Collections.emptyMap();
             when(consumerMock.poll(anyLong()))
-                    .thenReturn(new ConsumerRecords<>(emptyConsumerRecords));
+                    .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
             spout.nextTuple();
 
             InOrder inOrder = inOrder(consumerMock);
             inOrder.verify(consumerMock).commitSync(commitCapture.capture());
             inOrder.verify(consumerMock).poll(anyLong());
 
-            //verify that Offset 9 was last committed offset
+            //verify that Offset 4 was last committed offset
+            //the offset void should be bridged in the next commit
             Map<TopicPartition, OffsetAndMetadata> commits = commitCapture.getValue();
+            assertTrue(commits.containsKey(partition));
+            assertEquals(4, commits.get(partition).offset());
+
+            //Trigger second kafka consumer commit
+            reset(consumerMock);
+            SpoutWithMockedConsumerSetupHelper.stubAssignment(contextMock, consumerMock, assignedPartitions);
+            when(consumerMock.poll(anyLong()))
+                    .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+            Time.advanceTime(KafkaSpout.TIMER_DELAY_MS + offsetCommitPeriodMs);
+            spout.nextTuple();
+
+            inOrder = inOrder(consumerMock);
+            inOrder.verify(consumerMock).commitSync(commitCapture.capture());
+            inOrder.verify(consumerMock).poll(anyLong());
+
+            //verify that Offset 9 was last committed offset
+            commits = commitCapture.getValue();
             assertTrue(commits.containsKey(partition));
             assertEquals(9, commits.get(partition).offset());
         }
