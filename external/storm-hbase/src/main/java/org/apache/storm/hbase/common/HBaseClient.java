@@ -20,6 +20,7 @@ package org.apache.storm.hbase.common;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
 import org.apache.storm.hbase.security.HBaseSecurityUtil;
@@ -108,6 +109,33 @@ public class HBaseClient implements Closeable{
         }
     }
 
+
+    public ResultScanner reviseScan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria) throws Exception {
+        Scan scan = new Scan();
+//        Get get = new Get(rowKey);
+        scan.setFilter(new PrefixFilter(rowFilter));
+        scan.setCaching(20);
+        scan.setCacheBlocks(false);
+        scan.setReversed(true);
+
+        if (projectionCriteria != null) {
+            for (byte[] columnFamily : projectionCriteria.getColumnFamilies()) {
+                scan.addFamily(columnFamily);
+            }
+
+            for (HBaseProjectionCriteria.ColumnMetaData columnMetaData : projectionCriteria.getColumns()) {
+                scan.addColumn(columnMetaData.getColumnFamily(), columnMetaData.getQualifier());
+            }
+        }
+
+        try {
+            return table.getScanner(scan);
+        } catch (Exception e) {
+            LOG.warn("Could not perform HBASE scan lookup.", e);
+            throw e;
+        }
+
+    }
 
     public Get constructGetRequests(byte[] rowKey, HBaseProjectionCriteria projectionCriteria) {
         Get get = new Get(rowKey);
