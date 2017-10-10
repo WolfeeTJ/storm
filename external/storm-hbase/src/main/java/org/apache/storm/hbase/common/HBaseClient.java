@@ -109,14 +109,15 @@ public class HBaseClient implements Closeable{
         }
     }
 
-
-    public ResultScanner reviseScan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria) throws Exception {
+    public ResultScanner scan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria, Boolean isReverseScan) throws Exception {
         Scan scan = new Scan();
-//        Get get = new Get(rowKey);
+        scan.setRowPrefixFilter(rowFilter);
         scan.setFilter(new PrefixFilter(rowFilter));
-        scan.setCaching(20);
+        scan.setCaching(1);
         scan.setCacheBlocks(false);
-        scan.setReversed(true);
+        if (isReverseScan) {
+            scan.setReversed(true);
+        }
 
         if (projectionCriteria != null) {
             for (byte[] columnFamily : projectionCriteria.getColumnFamilies()) {
@@ -134,7 +135,14 @@ public class HBaseClient implements Closeable{
             LOG.warn("Could not perform HBASE scan lookup.", e);
             throw e;
         }
+    }
 
+    public ResultScanner scan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria) throws Exception {
+        return scan(rowFilter, projectionCriteria, false);
+    }
+
+    public ResultScanner reviseScan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria) throws Exception {
+        return scan(rowFilter, projectionCriteria, true);
     }
 
     public Get constructGetRequests(byte[] rowKey, HBaseProjectionCriteria projectionCriteria) {
