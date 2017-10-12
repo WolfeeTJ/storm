@@ -380,7 +380,13 @@ public class KafkaSpout<K, V> extends BaseRichSpout {
                             collector.emit(tuple, msgId);
                         }
                     }
-                    LOG.info("Emitted tuple [{}] for record [{}] with msgId [{}]", tuple, record, msgId);
+                    String quark_log_message = (String) this.kafkaSpoutConfig.getKafkaProps().get("quark.kafka.spout.log.message");
+                    if( null != quark_log_message && quark_log_message.equals("false") ) {
+                        LOG.info("Emitted with [{}],[{}],[{}],[{}],[{}]", record.topic(), record.partition(),
+                            record.offset(), record.key(), record.timestamp());
+                    } else {
+                        LOG.info("Emitted tuple [{}] for record [{}] with msgId [{}]", tuple, record, msgId);
+                    }
                     return true;
                 }
             } else {
