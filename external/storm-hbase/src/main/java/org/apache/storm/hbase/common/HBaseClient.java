@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.security.UserProvider;
 import org.apache.storm.hbase.bolt.mapper.HBaseProjectionCriteria;
 import org.apache.storm.hbase.security.HBaseSecurityUtil;
@@ -157,6 +158,42 @@ public class HBaseClient implements Closeable{
             LOG.warn("Could not open HBASE scanner.", e);
             throw e;
         }
+    }
+
+    public ResultScanner scan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria, Boolean isReverseScan) throws Exception {
+        Scan scan = new Scan();
+        scan.setRowPrefixFilter(rowFilter);
+        scan.setFilter(new PrefixFilter(rowFilter));
+        scan.setCaching(1);
+        scan.setCacheBlocks(false);
+        if (isReverseScan) {
+            scan.setReversed(true);
+        }
+
+        if (projectionCriteria != null) {
+            for (byte[] columnFamily : projectionCriteria.getColumnFamilies()) {
+                scan.addFamily(columnFamily);
+            }
+
+            for (HBaseProjectionCriteria.ColumnMetaData columnMetaData : projectionCriteria.getColumns()) {
+                scan.addColumn(columnMetaData.getColumnFamily(), columnMetaData.getQualifier());
+            }
+        }
+
+        try {
+            return table.getScanner(scan);
+        } catch (Exception e) {
+            LOG.warn("Could not perform HBASE scan lookup.", e);
+            throw e;
+        }
+    }
+
+    public ResultScanner scan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria) throws Exception {
+        return scan(rowFilter, projectionCriteria, false);
+    }
+
+    public ResultScanner reviseScan(byte[] rowFilter, HBaseProjectionCriteria projectionCriteria) throws Exception {
+        return scan(rowFilter, projectionCriteria, true);
     }
 
     public boolean exists(Get get) throws Exception {
