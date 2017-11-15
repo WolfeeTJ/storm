@@ -26,6 +26,8 @@
     </parent>
 
     <artifactId>storm-hbase</artifactId>
+    <name>storm-hbase</name>
+    <version>quark-1.1.1-SNAPSHOT</version>
 
     <developers>
         <developer>
@@ -43,7 +45,7 @@
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
-            <version>${project.version}</version>
+            <version>${parent.version}</version>
             <scope>${provided.scope}</scope>
         </dependency>
         <dependency>

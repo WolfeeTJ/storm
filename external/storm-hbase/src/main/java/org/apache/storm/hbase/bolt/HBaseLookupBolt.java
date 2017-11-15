@@ -120,9 +120,15 @@ public class HBaseLookupBolt extends AbstractHBaseBolt {
         Get get = hBaseClient.constructGetRequests(rowKey, projectionCriteria);
         result = hBaseClient.batchGet(Lists.newArrayList(get))[0];
       }
-      for (Values values : rowToTupleMapper.toValues(tuple, result)) {
-        this.collector.emit(tuple, values);
+
+      if (result.isEmpty()) {
+        LOG.info("Hbase key:{} get result is null!", new String(rowKey));
+      } else {
+        for (Values values : rowToTupleMapper.toValues(tuple, result)) {
+          this.collector.emit(tuple, values);
+        }
       }
+
       this.collector.ack(tuple);
     } catch (Exception e) {
       this.collector.reportError(e);
