@@ -27,6 +27,7 @@
     <artifactId>storm-core</artifactId>
     <packaging>jar</packaging>
     <name>Storm Core</name>
+    <version>quark-1.1.1-SNAPSHOT</version>
     <description>Storm Core Java API and Clojure implementation.</description>
 
     <properties>
@@ -851,14 +852,14 @@
                     <dependency>
                         <groupId>org.apache.storm</groupId>
                         <artifactId>maven-shade-clojure-transformer</artifactId>
-                        <version>${project.version}</version>
+                        <version>${parent.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
             <plugin>
                <groupId>org.apache.storm</groupId>
                <artifactId>storm-maven-plugins</artifactId>
-               <version>${project.version}</version>
+               <version>${parent.version}</version>
                <executions>
                  <execution>
                    <id>version-info</id>
@@ -907,17 +908,17 @@
                                      <artifactItem>
                                        <groupId>org.apache.storm</groupId>
                                        <artifactId>multilang-ruby</artifactId>
-                                       <version>${project.version}</version>
+                                       <version>${parent.version}</version>
                                      </artifactItem>
                                      <artifactItem>
                                         <groupId>org.apache.storm</groupId>
                                         <artifactId>multilang-python</artifactId>
-                                        <version>${project.version}</version>
+                                        <version>${parent.version}</version>
                                       </artifactItem>
                                       <artifactItem>
                                          <groupId>org.apache.storm</groupId>
                                          <artifactId>multilang-javascript</artifactId>
-                                         <version>${project.version}</version>
+                                         <version>${parent.version}</version>
                                        </artifactItem>
                                    </artifactItems>
                                    <outputDirectory>${project.build.directory}/test-classes</outputDirectory>

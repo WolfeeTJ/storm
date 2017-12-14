@@ -203,8 +203,6 @@
           context (doto (org.eclipse.jetty.servlet.ServletContextHandler. server "/")
                     (.addServlet servlet-holder "/"))]
       (.addFilter context (cors-filter-handler) "/*" (EnumSet/allOf DispatcherType))
-      (if-not (blank? http-x-frame-options)
-        (.addFilter context (x-frame-options-filter-handler http-x-frame-options) "/*" FilterMapping/ALL))
       (doseq [{:keys [filter-name filter-class filter-params]} filters-confs]
         (if filter-class
           (let [filter-holder (doto (org.eclipse.jetty.servlet.FilterHolder.)
